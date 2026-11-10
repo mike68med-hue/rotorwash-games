@@ -1,6 +1,322 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Rotorwash Games</title>
-<style>body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;max-width:680px;margin:0 auto;padding:32px 20px;line-height:1.6;color:#1d2033}</style></head><body>
-<h1>Rotorwash Games</h1><p>Simple, fair games for Android. No pop-up ads.</p>
-<h2>Privacy policies</h2><ul>
-<li><a href="privacy/heli.html">Simple Heli</a></li><li><a href="privacy/gem-match.html">Simple Gem Match</a></li><li><a href="privacy/block-drop.html">Simple Block Drop</a></li><li><a href="privacy/chess.html">Simple Chess</a></li><li><a href="privacy/tic-tac-toe.html">Simple Tic Tac Toe</a></li><li><a href="privacy/road-battle.html">Road Battle</a></li></ul>
-<p>Contact: mike68med@hotmail.com</p></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rotorwash Games</title>
+<meta name="description" content="Rotorwash Games – simple, offline mobile games for Android.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#1a0a0d; --paper:#fff8f1; --ember:#e2381f; --sun:#ffb347; --muted:#6d5a57; }
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { margin:0; font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--ink); background:var(--paper); line-height:1.6; }
+  a { color:var(--ember); }
+  nav { position:absolute; top:0; left:0; right:0; z-index:2; display:flex; align-items:center; justify-content:space-between; padding:18px clamp(18px,4vw,48px); }
+  .brand { display:flex; align-items:center; gap:12px; color:#fff; text-decoration:none; font-family:Oswald,sans-serif; font-weight:700; font-size:20px; letter-spacing:1px; text-transform:uppercase; }
+  .brand .logo { width:42px; height:42px; border-radius:10px; overflow:hidden; box-shadow:0 2px 10px rgba(0,0,0,.35); }
+  .brand .logo svg { display:block; width:100%; height:100%; }
+  nav .links a { color:#fff; text-decoration:none; margin-left:22px; font-weight:600; font-size:15px; opacity:.9; }
+  nav .links a:hover { opacity:1; text-decoration:underline; }
+  header.hero { position:relative; min-height:min(88vh,760px); display:flex; align-items:flex-end; overflow:hidden; color:#fff; }
+  .hero-art { position:absolute; inset:0; width:100%; height:100%; }
+  .hero::after { content:""; position:absolute; inset:0; background:linear-gradient(to top, rgba(26,10,13,.75), rgba(26,10,13,0) 55%); }
+  .hero-text { position:relative; z-index:1; padding:0 clamp(18px,4vw,48px) clamp(36px,7vh,72px); max-width:760px; }
+  .hero h1 { font-family:Oswald,sans-serif; font-size:clamp(44px,8vw,88px); line-height:1; margin:0 0 12px; letter-spacing:1px; text-transform:uppercase; }
+  .hero p { font-size:clamp(17px,2.2vw,21px); margin:0; opacity:.92; }
+  section { padding:clamp(48px,8vw,90px) clamp(18px,4vw,48px); max-width:1040px; margin:0 auto; }
+  h2 { font-family:Oswald,sans-serif; text-transform:uppercase; letter-spacing:1px; font-size:clamp(28px,4vw,38px); margin:0 0 24px; }
+  .game { display:grid; grid-template-columns:150px 1fr; gap:28px; align-items:start; background:#fff; border-radius:18px; padding:28px; box-shadow:0 6px 30px rgba(74,11,16,.10); }
+  .game .icon { width:150px; height:150px; border-radius:30px; overflow:hidden; box-shadow:0 6px 18px rgba(0,0,0,.25); }
+  .game .icon svg { display:block; width:100%; height:100%; }
+  .game h3 { font-family:Oswald,sans-serif; font-size:30px; margin:0 0 6px; text-transform:uppercase; letter-spacing:.5px; }
+  .tags { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 14px; padding:0; list-style:none; }
+  .tags li { background:#fde9dc; color:#8a2a14; font-size:13px; font-weight:600; padding:3px 10px; border-radius:999px; }
+  .game p { margin:0 0 16px; }
+  .badge { display:inline-flex; align-items:center; gap:10px; background:var(--ink); color:#fff; border-radius:12px; padding:10px 18px; font-weight:600; text-decoration:none; }
+  .badge small { display:block; font-size:11px; font-weight:400; opacity:.75; text-transform:uppercase; letter-spacing:1px; }
+  .badge .tri { width:0; height:0; border-left:14px solid var(--sun); border-top:9px solid transparent; border-bottom:9px solid transparent; }
+  .about { display:grid; grid-template-columns:1fr 1fr; gap:36px; }
+  .about p { margin:0 0 14px; }
+  .card { background:#fff; border-radius:18px; padding:24px 28px; box-shadow:0 6px 30px rgba(74,11,16,.08); }
+  .card h3 { margin:0 0 10px; font-size:18px; }
+  .card ul { margin:0; padding-left:20px; }
+  footer { background:var(--ink); color:#e8d9d4; padding:36px clamp(18px,4vw,48px); }
+  footer .inner { max-width:1040px; margin:0 auto; display:flex; flex-wrap:wrap; gap:16px 40px; justify-content:space-between; align-items:center; }
+  footer a { color:var(--sun); }
+  @media (max-width:720px) {
+    .game { grid-template-columns:1fr; }
+    .about { grid-template-columns:1fr; }
+    nav .links { display:none; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="brand" href="#top"><span class="logo"><svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <linearGradient id="isky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0f1530"/>
+      <stop offset="0.45" stop-color="#3a2a52"/>
+      <stop offset="0.75" stop-color="#c8573a"/>
+      <stop offset="1" stop-color="#f3a64a"/>
+    </linearGradient>
+    <radialGradient id="isun" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffd27a" stop-opacity="0.95"/>
+      <stop offset="0.6" stop-color="#ffb35c" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ff8a3d" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- sky -->
+  <rect width="512" height="512" fill="url(#isky)"/>
+  <circle cx="256" cy="400" r="170" fill="url(#isun)"/>
+  <!-- stars -->
+  <g fill="#ffffff" opacity="0.7">
+    <circle cx="60" cy="60" r="1.8"/><circle cx="140" cy="38" r="1.2"/><circle cx="210" cy="90" r="1.5"/>
+    <circle cx="330" cy="50" r="1.3"/><circle cx="420" cy="80" r="1.8"/><circle cx="470" cy="30" r="1.1"/>
+    <circle cx="380" cy="120" r="1"/><circle cx="95" cy="130" r="1"/>
+  </g>
+  <!-- distant ridge line -->
+  <path d="M0,452 L60,430 L110,444 L170,418 L230,440 L290,424 L350,446 L410,420 L470,438 L512,428 L512,512 L0,512 Z" fill="#141022"/>
+
+  <g transform="rotate(-5 256 240) translate(0 10)">
+  <g fill="#0a0a12">
+    <!-- main rotor blades (motion blur + blade) -->
+    <ellipse cx="250" cy="172" rx="225" ry="9" fill="#0a0a12" opacity="0.25"/>
+    <path d="M24,169 L250,164 L478,169 L478,176 L250,180 L24,176 Z"/>
+    <!-- rotor head and mast -->
+    <rect x="240" y="158" width="20" height="12" rx="3"/>
+    <rect x="245" y="168" width="10" height="24"/>
+
+    <!-- fuselage, engines, tail boom and fin -->
+    <path d="
+      M 82,300
+      C 66,288 68,262 92,250
+      L 132,232
+      L 165,212
+      L 205,207
+      L 214,192
+      L 296,189
+      L 318,204
+      L 340,210
+      L 432,222
+      L 450,166
+      L 470,163
+      L 468,232
+      L 452,244
+      L 342,248
+      L 316,264
+      L 306,298
+      L 112,306
+      Z"/>
+    <!-- horizontal stabilator -->
+    <path d="M424,246 L478,240 L480,247 L426,252 Z"/>
+
+    <!-- tail rotor -->
+    <circle cx="459" cy="198" r="30" fill="#0a0a12" opacity="0.22"/>
+    <rect x="456" y="168" width="6" height="60" rx="2" transform="rotate(25 459 198)"/>
+    <rect x="429" y="195" width="60" height="6" rx="2" transform="rotate(25 459 198)"/>
+    <circle cx="459" cy="198" r="5"/>
+
+    <!-- landing gear -->
+    <path d="M150,302 L150,316 L170,316 L176,302 Z"/>
+    <circle cx="160" cy="318" r="12"/>
+    <path d="M436,246 L438,258 L446,258 L446,244 Z"/>
+    <circle cx="442" cy="261" r="7"/>
+  </g>
+
+  <!-- windows (faint glint of the sunset) -->
+  <g fill="#f3a64a" opacity="0.35">
+    <path d="M104,252 L134,237 L160,220 L170,219 L166,240 L108,258 Z"/>
+    <path d="M176,218 L200,214 L200,240 L174,243 Z"/>
+    <rect x="222" y="224" width="30" height="20" rx="3"/>
+    <rect x="262" y="224" width="22" height="20" rx="3"/>
+  </g>
+  </g>
+</svg>
+</span>Rotorwash Games</a>
+  <div class="links"><a href="#games">Games</a><a href="#about">About</a><a href="#contact">Contact</a></div>
+</nav>
+
+<header class="hero" id="top">
+  <svg class="hero-art" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <radialGradient id="sky" cx="0.68" cy="0.62" r="0.95">
+      <stop offset="0" stop-color="#ffb347"/>
+      <stop offset="0.25" stop-color="#ff7a2e"/>
+      <stop offset="0.6" stop-color="#e2381f"/>
+      <stop offset="0.85" stop-color="#9e1a17"/>
+      <stop offset="1" stop-color="#4a0b10"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fff6d8" stop-opacity="1"/>
+      <stop offset="0.45" stop-color="#ffe7a8" stop-opacity="0.9"/>
+      <stop offset="0.6" stop-color="#ffc56a" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#ff9a3c" stop-opacity="0"/>
+    </radialGradient>
+    <g id="heli" fill="#140608">
+    <!-- main rotor blades (motion blur + blade) -->
+    <ellipse cx="250" cy="172" rx="225" ry="9" fill="#140608" opacity="0.25"/>
+    <path d="M24,169 L250,164 L478,169 L478,176 L250,180 L24,176 Z"/>
+    <!-- rotor head and mast -->
+    <rect x="240" y="158" width="20" height="12" rx="3"/>
+    <rect x="245" y="168" width="10" height="24"/>
+
+    <!-- fuselage, engines, tail boom and fin -->
+    <path d="
+      M 82,300
+      C 66,288 68,262 92,250
+      L 132,232
+      L 165,212
+      L 205,207
+      L 214,192
+      L 296,189
+      L 318,204
+      L 340,210
+      L 432,222
+      L 450,166
+      L 470,163
+      L 468,232
+      L 452,244
+      L 342,248
+      L 316,264
+      L 306,298
+      L 112,306
+      Z"/>
+    <!-- horizontal stabilator -->
+    <path d="M424,246 L478,240 L480,247 L426,252 Z"/>
+
+    <!-- tail rotor -->
+    <circle cx="459" cy="198" r="30" fill="#140608" opacity="0.22"/>
+    <rect x="456" y="168" width="6" height="60" rx="2" transform="rotate(25 459 198)"/>
+    <rect x="429" y="195" width="60" height="6" rx="2" transform="rotate(25 459 198)"/>
+    <circle cx="459" cy="198" r="5"/>
+
+    <!-- landing gear -->
+    <path d="M150,302 L150,316 L170,316 L176,302 Z"/>
+    <circle cx="160" cy="318" r="12"/>
+    <path d="M436,246 L438,258 L446,258 L446,244 Z"/>
+    <circle cx="442" cy="261" r="7"/>
+  </g>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <!-- sun -->
+  <circle cx="1090" cy="560" r="330" fill="url(#glow)"/>
+  <circle cx="1090" cy="560" r="135" fill="#fff4d6"/>
+
+  <!-- distant helicopter, upper right, banking -->
+  <use href="#heli" transform="translate(1180 120) scale(0.55) rotate(10 250 240)" opacity="0.92"/>
+  <!-- lead helicopter, left -->
+  <use href="#heli" transform="translate(330 70) scale(1.05) rotate(-6 250 240)"/>
+
+  <!-- ground haze -->
+  <path d="M0,820 L120,800 L230,815 L360,790 L480,810 L620,785 L760,808 L900,792 L1040,812 L1180,788 L1320,806 L1460,790 L1600,804 L1600,900 L0,900 Z" fill="#2a070b" opacity="0.9"/>
+</svg>
+  <div class="hero-text">
+    <h1>Rotorwash Games</h1>
+    <p>Simple, fun mobile games you can pick up anytime: no ads that interrupt play, no accounts, and no internet needed to play.</p>
+  </div>
+</header>
+
+<section id="games">
+  <h2>Our Games</h2>
+  <article class="game">
+    <div class="icon"><svg viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="108" height="108" fill="#B8432F"/><circle cx="74" cy="64" r="15" fill="#F6B27A"/><g transform="matrix(-0.12 0 0 0.12 84.1 25.2)" fill="#140608"><path d="M82,300 C66,288 68,262 92,250 L132,232 L165,212 L205,207 L214,192 L296,189 L318,204 L340,210 L432,222 L450,166 L470,163 L468,232 L452,244 L342,248 L316,264 L306,298 L112,306 Z"/><path d="M424,246 L478,240 L480,247 L426,252 Z"/><path d="M24,169 L250,164 L478,169 L478,176 L250,180 L24,176 Z"/><path d="M240,158 h20 v12 h-20 Z M245,168 h10 v24 h-10 Z"/><path d="M150,302 L150,316 L170,316 L176,302 Z M148,318 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0"/><path d="M456,168 h6 v60 h-6 Z M429,195 h60 v6 h-60 Z"/></g></svg></div>
+    <div>
+      <h3>Simple Heli</h3>
+      <ul class="tags"><li>Arcade</li><li>Flying</li><li>Offline</li><li>No annoying ads</li><li>Android</li></ul>
+      <p>Fly a helicopter through a winding cave at sunset, dusk, night and dawn. Touch above or below to fly there, let go to hover, and hold FIRE to shoot targets, stars and rocks. A new level every 100 km, with your progress saved.</p>
+      <a class="badge" href="#contact"><span class="tri"></span><span><small>Coming soon to</small>Google Play</span></a>
+      <p style="margin-top:14px;font-size:14px;color:var(--muted)"><a href="privacy/heli.html">Simple Heli privacy policy</a></p>
+    </div>
+  </article>
+  <article class="game" style="margin-top:24px">
+    <div class="icon"><svg viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="108" height="108" fill="#0F1220"/><circle cx="42" cy="43" r="11" fill="#EF3B4B" stroke="#7A0F24" stroke-width="2"/><path d="M66,31 L78,43 L66,55 L54,43 Z" fill="#3B8CFF" stroke="#11348A" stroke-width="2"/><path d="M42,56 L52,61.5 L52,73.5 L42,79 L32,73.5 L32,61.5 Z" fill="#35C95A" stroke="#0C5A2B" stroke-width="2"/><path d="M66,55 L69.3,63.4 L78.3,63.7 L71.1,69.4 L73.8,78.4 L66,73.3 L58.2,78.4 L60.9,69.4 L53.7,63.7 L62.7,63.4 Z" fill="#FFD23A" stroke="#9B6E00" stroke-width="2"/></svg></div>
+    <div>
+      <h3>Simple Gem Match</h3>
+      <ul class="tags"><li>Puzzle</li><li>Match 3</li><li>Offline</li><li>No annoying ads</li><li>Android</li></ul>
+      <p>Swap and match gems to set off explosions, arrow blasts, seeker missiles and rainbow fireworks. Earn free bonus items for 3-star levels, and celebrate every 10 levels. No coins, no lives, no shop: just the next level.</p>
+      <a class="badge" href="#contact"><span class="tri"></span><span><small>Coming soon to</small>Google Play</span></a>
+      <p style="margin-top:14px;font-size:14px;color:var(--muted)"><a href="privacy/gem-match.html">Simple Gem Match privacy policy</a></p>
+    </div>
+  </article>
+  <article class="game" style="margin-top:24px">
+    <div class="icon"><svg viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="108" height="108" fill="#0F1220"/><rect x="41.7" y="28.7" width="11.6" height="11.6" rx="1.6" fill="#B07CFF"/><rect x="67.7" y="28.7" width="11.6" height="11.6" rx="1.6" fill="#FF9F43"/><rect x="28.7" y="41.7" width="11.6" height="11.6" rx="1.6" fill="#B07CFF"/><rect x="41.7" y="41.7" width="11.6" height="11.6" rx="1.6" fill="#B07CFF"/><rect x="54.7" y="41.7" width="11.6" height="11.6" rx="1.6" fill="#B07CFF"/><rect x="67.7" y="41.7" width="11.6" height="11.6" rx="1.6" fill="#FF9F43"/><rect x="28.7" y="54.7" width="11.6" height="11.6" rx="1.6" fill="#FFCF4A"/><rect x="41.7" y="54.7" width="11.6" height="11.6" rx="1.6" fill="#FFCF4A"/><rect x="54.7" y="54.7" width="11.6" height="11.6" rx="1.6" fill="#FF9F43"/><rect x="67.7" y="54.7" width="11.6" height="11.6" rx="1.6" fill="#FF9F43"/><rect x="28.7" y="67.7" width="11.6" height="11.6" rx="1.6" fill="#4DD6E8"/><rect x="41.7" y="67.7" width="11.6" height="11.6" rx="1.6" fill="#4DD6E8"/><rect x="54.7" y="67.7" width="11.6" height="11.6" rx="1.6" fill="#4DD6E8"/><rect x="67.7" y="67.7" width="11.6" height="11.6" rx="1.6" fill="#4DD6E8"/></svg></div>
+    <div>
+      <h3>Simple Block Drop</h3>
+      <ul class="tags"><li>Puzzle</li><li>Offline</li><li>No annoying ads</li><li>Android</li></ul>
+      <p>Stack falling blocks, clear full rows, and chase your best score. Tap to rotate, drag to move, swipe down to drop. The speed tops out at a comfortable pace, so it's perfect for long, relaxing runs.</p>
+      <a class="badge" href="#contact"><span class="tri"></span><span><small>Coming soon to</small>Google Play</span></a>
+      <p style="margin-top:14px;font-size:14px;color:var(--muted)"><a href="privacy/block-drop.html">Simple Block Drop privacy policy</a></p>
+    </div>
+  </article>
+  <article class="game" style="margin-top:24px">
+    <div class="icon"><svg viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="108" height="108" fill="#0F1220"/><g transform="translate(23 22) scale(1.38)" fill="#F7F2E8" stroke="#2A1D14" stroke-width="1.5" stroke-linejoin="round"><path d="M14,34 C15,29 19,26 21,22 C19,23.5 16,24.5 13.5,23.5 L11,25 L9.5,21.5 C10,16 14,11 19,9 L20,5.5 L22.5,8.5 C28.5,8.5 32,13 32,20 C32,26 30,30 31,34 Z"/><path d="M12,34 L33,34 L33,39 L12,39 Z"/><circle cx="22" cy="13.5" r="1.4" fill="#2A1D14" stroke="none"/></g></svg></div>
+    <div>
+      <h3>Simple Chess</h3>
+      <ul class="tags"><li>Board</li><li>Strategy</li><li>Offline</li><li>No annoying ads</li><li>Android</li></ul>
+      <p>Classic chess with a clean, easy-to-read board. Take on the computer at Easy, Medium or Hard, or pass the phone to a friend. Legal moves are shown as you play, plus hints and undo, so it's great for learning too.</p>
+      <a class="badge" href="#contact"><span class="tri"></span><span><small>Coming soon to</small>Google Play</span></a>
+      <p style="margin-top:14px;font-size:14px;color:var(--muted)"><a href="privacy/chess.html">Simple Chess privacy policy</a></p>
+    </div>
+  </article>
+  <article class="game" style="margin-top:24px">
+    <div class="icon"><svg viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="108" height="108" fill="#0F1220"/><path d="M30,36 L48,54 M48,36 L30,54" stroke="#4DD6E8" stroke-width="7" stroke-linecap="round" fill="none"/><circle cx="69" cy="45" r="10" stroke="#FF8A5C" stroke-width="7" fill="none"/><path d="M30,68 L78,68" stroke="#FFCF4A" stroke-width="3.5" stroke-linecap="round"/></svg></div>
+    <div>
+      <h3>Simple Tic Tac Toe</h3>
+      <ul class="tags"><li>Board</li><li>1 or 2 players</li><li>Offline</li><li>No annoying ads</li><li>Android</li></ul>
+      <p>The classic game of X and O. Play the computer at Easy, Medium or Unbeatable, or pass the phone to a friend. A running scoreboard keeps track of who's ahead.</p>
+      <a class="badge" href="#contact"><span class="tri"></span><span><small>Coming soon to</small>Google Play</span></a>
+      <p style="margin-top:14px;font-size:14px;color:var(--muted)"><a href="privacy/tic-tac-toe.html">Simple Tic Tac Toe privacy policy</a></p>
+    </div>
+  </article>
+  <article class="game" style="margin-top:24px">
+    <div class="icon"><img src="store/road-battle/icon-216.jpg" alt="" width="108" height="108" style="width:100%;height:100%;display:block;border-radius:inherit"></div>
+    <div>
+      <h3>Road Battle</h3>
+      <ul class="tags"><li>Racing</li><li>Car combat</li><li>Offline</li><li>Multiplayer nearby</li><li>Android</li></ul>
+      <p>Build, arm and race your car through 24 circuits and city arenas. Lap races, every car for itself, team battles or All vs You, with rival drivers from Easy to Hard. Earn upgrades by racing, design your own maps, and battle up to 4 friends in the same room with no internet needed.</p>
+      <a class="badge" href="#contact"><span class="tri"></span><span><small>Coming soon to</small>Google Play</span></a>
+      <p style="margin-top:14px;font-size:14px;color:var(--muted)"><a href="privacy/road-battle.html">Road Battle privacy policy</a></p>
+    </div>
+  </article>
+</section>
+
+<section id="about">
+  <h2>About</h2>
+  <div class="about">
+    <div>
+      <p>Rotorwash Games is an independent game studio making straightforward games for Android phones.</p>
+      <p>Every game is built to respect your time and your privacy: it plays offline, never interrupts you with pop-up or video ads, and we never collect your personal information. Small banner ads from Google AdMob help keep our games free.</p>
+    </div>
+    <div class="card">
+      <h3>Our promise</h3>
+      <ul>
+        <li>Only small banner ads: no pop-ups or videos</li>
+        <li>No accounts or sign-ins</li>
+        <li>We never collect your personal info</li>
+        <li>Plays offline, anytime</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="contact">
+  <h2>Contact</h2>
+  <p>Questions, bug reports or ideas for a new game? We'd love to hear from you.</p>
+  <p style="font-size:20px;font-weight:600">mike68med@hotmail.com</p>
+</section>
+
+<footer>
+  <div class="inner">
+    <span>© 2026 Rotorwash Games</span>
+    <span>Privacy: <a href="privacy/block-drop.html">Simple Block Drop</a> · <a href="privacy/chess.html">Simple Chess</a> · <a href="privacy/tic-tac-toe.html">Simple Tic Tac Toe</a> · <a href="privacy/gem-match.html">Simple Gem Match</a> · <a href="privacy/heli.html">Simple Heli</a> · <a href="privacy/road-battle.html">Road Battle</a></span>
+  </div>
+</footer>
+
+</body>
+</html>
