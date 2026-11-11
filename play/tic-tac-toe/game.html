@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Simple Tic Tac Toe</title>
+<style>
+  :root { --bg: #0f1220; --panel: #181c30; --line: #262b47; --text: #e9ecf8; --muted: #8a91b4; --accent: #ffcf4a;
+          --x: #4dd6e8; --o: #ff8a5c; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overscroll-behavior: none;
+    user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+  .app { max-width: 480px; margin: 0 auto; min-height: 100%; display: flex; flex-direction: column; padding: 10px 14px 16px; gap: 14px; }
+  header { display: flex; align-items: center; justify-content: space-between; }
+  h1 { font-size: 18px; margin: 0; letter-spacing: .5px; }
+  h1 span { color: var(--accent); }
+  .row { display: flex; gap: 8px; }
+  .btn { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 10px;
+    padding: 8px 14px; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .btn:disabled { opacity: .4; cursor: default; }
+
+  .scores { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .score { background: var(--panel); border: 2px solid var(--line); border-radius: 14px; padding: 10px 6px; text-align: center; transition: border-color .2s, transform .2s; }
+  .score .who { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .score .num { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .score.x .num { color: var(--x); } .score.o .num { color: var(--o); }
+  .score.turn { border-color: var(--accent); transform: translateY(-2px); }
+
+  .status { text-align: center; font-weight: 700; font-size: 18px; min-height: 26px; }
+  .status .x { color: var(--x); } .status .o { color: var(--o); }
+
+  .boardwrap { position: relative; width: 100%; aspect-ratio: 1; }
+  .board { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 10px; }
+  .cell { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background .15s; }
+  .cell:active { background: #20253f; }
+  .cell.dim { opacity: .35; transition: opacity .4s; }
+  .cell svg { width: 72%; height: 72%; overflow: visible; }
+  .mark { fill: none; stroke-width: 13; stroke-linecap: round; }
+  .mark.x { stroke: var(--x); } .mark.o { stroke: var(--o); }
+  .draw { stroke-dasharray: 300; stroke-dashoffset: 300; animation: draw .28s ease-out forwards; }
+  .draw.d2 { animation-delay: .12s; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  .winline { position: absolute; inset: 0; pointer-events: none; }
+  .winline line { stroke: var(--accent); stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 160; stroke-dashoffset: 160; animation: draw .45s ease-out forwards; filter: drop-shadow(0 0 2px rgba(255,207,74,.7)); }
+
+  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .controls .btn { height: 50px; }
+  .big { background: var(--accent); color: #1a1400; border: 0; border-radius: 12px; padding: 13px 28px; font-size: 18px; font-weight: 800; cursor: pointer; width: 100%; }
+
+  .overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(8, 10, 20, .78); z-index: 10; padding: 20px; }
+  .overlay.show { display: flex; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 22px; width: min(420px, 100%); text-align: center; }
+  .card h2 { margin: 0 0 6px; font-size: 24px; }
+  .opt { margin: 14px 0; text-align: left; }
+  .opt .label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 6px; }
+  .seg { display: flex; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 3px; gap: 3px; }
+  .seg button { flex: 1; background: none; border: 0; color: var(--text); padding: 10px 4px; border-radius: 9px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .seg button.on { background: var(--accent); color: #1a1400; }
+  .link { background: none; border: 0; color: var(--muted); margin-top: 12px; font-size: 14px; cursor: pointer; text-decoration: underline; }
+  .hide { display: none !important; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Simple <span>Tic Tac Toe</span></h1>
+    <div class="row">
+      <button class="btn" id="muteBtn" aria-label="Sound on or off">🔊</button>
+      <button class="btn" id="menuBtn">Settings</button>
+    </div>
+  </header>
+
+  <div class="scores">
+    <div class="score x" id="scoreX"><div class="who" id="nameX">X</div><div class="num" id="numX">0</div></div>
+    <div class="score" id="scoreD"><div class="who">Draws</div><div class="num" id="numD">0</div></div>
+    <div class="score o" id="scoreO"><div class="who" id="nameO">O</div><div class="num" id="numO">0</div></div>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <div class="boardwrap">
+    <div class="board" id="board"></div>
+    <svg class="winline" id="winline" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+  </div>
+
+  <div class="controls">
+    <button class="btn" id="undoBtn">↶ Undo</button>
+    <button class="btn" id="nextBtn">↻ New round</button>
+  </div>
+  <div style="text-align:center"><button class="link" id="resetScores">Reset scores</button></div>
+  <div id="privacyLink" class="hide" style="text-align:center"><a href="#" style="color:var(--muted);font-size:13px">Privacy settings</a></div>
+</div>
+
+<!-- Settings -->
+<div class="overlay" id="menu">
+  <div class="card">
+    <h2>Simple Tic Tac Toe</h2>
+    <div class="opt">
+      <div class="label">Players</div>
+      <div class="seg" data-key="mode"><button data-v="1">1 Player</button><button data-v="2">2 Players</button></div>
+    </div>
+    <div class="opt" id="levelOpt">
+      <div class="label">Computer</div>
+      <div class="seg" data-key="level"><button data-v="1">Easy</button><button data-v="2">Medium</button><button data-v="3">Unbeatable</button></div>
+    </div>
+    <div class="opt" id="sideOpt">
+      <div class="label">You play</div>
+      <div class="seg" data-key="side"><button data-v="X">X</button><button data-v="O">O</button></div>
+    </div>
+    <button class="big" id="startBtn">Play</button>
+    <button class="link" id="closeMenu">Back to the game</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const el = id => document.getElementById(id);
+  const LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+
+  // ---------- sound ----------
+  let audioCtx = null, muted = false;
+  try { muted = localStorage.getItem('ttt-muted') === '1'; } catch (e) {}
+  function initAudio() {
+    if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  function tone(f, d, type, v, slide, delay) {
+    if (muted || !audioCtx) return;
+    const t = audioCtx.currentTime + (delay || 0), o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + d);
+    g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t + d + 0.02);
+  }
+  const sfx = {
+    x: () => tone(660, 0.09, 'triangle', 0.09, 520),
+    o: () => tone(440, 0.11, 'sine', 0.12, 560),
+    win: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.18, 'triangle', 0.08, null, i * 0.1)),
+    lose: () => [392, 330, 262].forEach((f, i) => tone(f, 0.24, 'triangle', 0.08, null, i * 0.16)),
+    draw: () => [494, 494].forEach((f, i) => tone(f, 0.14, 'triangle', 0.07, null, i * 0.15))
+  };
+  function updateMute() { el('muteBtn').textContent = muted ? '🔇' : '🔊'; }
+  updateMute();
+  el('muteBtn').onclick = () => { muted = !muted; updateMute(); initAudio(); try { localStorage.setItem('ttt-muted', muted ? '1' : '0'); } catch (e) {} };
+  document.addEventListener('pointerdown', initAudio, { passive: true });
+
+  // ---------- state ----------
+  let settings = { mode: '1', level: '2', side: 'X' };
+  let scores = { X: 0, O: 0, D: 0 };
+  let board, turn, history, result, starter = 'X', thinking = false, lastPlaced = -1;
+  try {
+    const s = JSON.parse(localStorage.getItem('ttt-settings') || 'null'); if (s) settings = s;
+    const sc = JSON.parse(localStorage.getItem('ttt-scores') || 'null'); if (sc) scores = sc;
+  } catch (e) {}
+  function save() { try { localStorage.setItem('ttt-settings', JSON.stringify(settings)); localStorage.setItem('ttt-scores', JSON.stringify(scores)); } catch (e) {} }
+
+  const vsCpu = () => settings.mode === '1';
+  const cpu = () => settings.side === 'X' ? 'O' : 'X';
+
+  function winnerOf(b) {
+    for (const l of LINES) if (b[l[0]] && b[l[0]] === b[l[1]] && b[l[0]] === b[l[2]]) return { who: b[l[0]], line: l };
+    return b.every(Boolean) ? { who: 'D' } : null;
+  }
+
+  // ---------- computer ----------
+  // Minimax: the computer never loses at "Unbeatable".
+  function minimax(b, player, me, depth) {
+    const w = winnerOf(b);
+    if (w) return w.who === 'D' ? 0 : (w.who === me ? 10 - depth : depth - 10);
+    const other = player === 'X' ? 'O' : 'X';
+    let best = player === me ? -Infinity : Infinity;
+    for (let i = 0; i < 9; i++) {
+      if (b[i]) continue;
+      b[i] = player;
+      const s = minimax(b, other, me, depth + 1);
+      b[i] = '';
+      best = player === me ? Math.max(best, s) : Math.min(best, s);
+    }
+    return best;
+  }
+  function perfectMove(b, me) {
+    const other = me === 'X' ? 'O' : 'X';
+    let bestScore = -Infinity, moves = [];
+    for (let i = 0; i < 9; i++) {
+      if (b[i]) continue;
+      b[i] = me; const s = minimax(b, other, me, 1); b[i] = '';
+      if (s > bestScore) { bestScore = s; moves = [i]; } else if (s === bestScore) moves.push(i);
+    }
+    return moves[Math.floor(Math.random() * moves.length)];   // pick among equally good moves for variety
+  }
+  function randomMove(b) { const e = []; b.forEach((v, i) => { if (!v) e.push(i); }); return e[Math.floor(Math.random() * e.length)]; }
+  function lineMove(b, who) {   // a square that completes three-in-a-row for `who`
+    for (const l of LINES) {
+      const vals = l.map(i => b[i]);
+      if (vals.filter(v => v === who).length === 2 && vals.includes('')) return l[vals.indexOf('')];
+    }
+    return -1;
+  }
+  function computerMove() {
+    const b = board.slice(), me = cpu(), them = settings.side;
+    const level = +settings.level;
+    if (level === 3) return perfectMove(b, me);
+    if (level === 2) {
+      // Medium: takes wins, blocks most of the time, otherwise sensible but not perfect
+      let m = lineMove(b, me); if (m >= 0) return m;
+      m = lineMove(b, them); if (m >= 0 && Math.random() < 0.8) return m;
+      return Math.random() < 0.5 ? perfectMove(b, me) : randomMove(b);
+    }
+    // Easy: takes an obvious win half the time, otherwise random
+    const w = lineMove(b, me); if (w >= 0 && Math.random() < 0.5) return w;
+    return randomMove(b);
+  }
+
+  // ---------- game flow ----------
+  function newRound(resetStarter) {
+    board = Array(9).fill(''); history = []; result = null; lastPlaced = -1; thinking = false;
+    if (resetStarter) starter = 'X';
+    turn = starter;
+    el('winline').innerHTML = '';
+    render(); maybeComputer();
+  }
+
+  function place(i, silent) {
+    if (board[i] || result) return;
+    board[i] = turn; history.push(i); lastPlaced = i;
+    if (!silent) (turn === 'X' ? sfx.x : sfx.o)();
+    const w = winnerOf(board);
+    if (w) {
+      result = w;
+      if (w.who === 'D') scores.D++; else scores[w.who]++;
+      starter = starter === 'X' ? 'O' : 'X';   // take turns starting each round
+      save();
+      setTimeout(() => {
+        if (w.who === 'D') sfx.draw();
+        else if (vsCpu() && w.who === cpu()) sfx.lose(); else sfx.win();
+      }, 250);
+    } else turn = turn === 'X' ? 'O' : 'X';
+    render();
+    if (!result) maybeComputer();
+  }
+
+  function maybeComputer() {
+    if (!vsCpu() || result || turn !== cpu()) return;
+    thinking = true; render();
+    setTimeout(() => { thinking = false; place(computerMove()); }, 450);
+  }
+
+  el('board').addEventListener('click', e => {
+    const c = e.target.closest('.cell'); if (!c) return;
+    if (thinking || result) return;
+    if (vsCpu() && turn === cpu()) return;
+    place(+c.dataset.i);
+  });
+
+  el('undoBtn').onclick = () => {
+    if (thinking || !history.length) return;
+    if (result) {   // undoing a finished round takes the point back too
+      if (result.who === 'D') scores.D--; else scores[result.who]--;
+      starter = starter === 'X' ? 'O' : 'X';
+      save();
+    }
+    let n = 1;
+    if (vsCpu()) {
+      const lastWasCpu = board[history[history.length - 1]] === cpu();
+      n = lastWasCpu && history.length >= 2 ? 2 : 1;
+      if (!lastWasCpu) n = 1;
+    }
+    for (let k = 0; k < n; k++) { const i = history.pop(); board[i] = ''; }
+    result = null; lastPlaced = -1;
+    turn = history.length % 2 === 0 ? starter : (starter === 'X' ? 'O' : 'X');
+    el('winline').innerHTML = '';
+    render(); maybeComputer();
+  };
+  el('nextBtn').onclick = () => newRound(false);
+  el('resetScores').onclick = () => { scores = { X: 0, O: 0, D: 0 }; save(); newRound(true); };
+
+  // ---------- menu ----------
+  function syncMenu() {
+    document.querySelectorAll('.seg').forEach(seg => seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === settings[seg.dataset.key])));
+    el('levelOpt').classList.toggle('hide', !vsCpu());
+    el('sideOpt').classList.toggle('hide', !vsCpu());
+  }
+  document.querySelectorAll('.seg').forEach(seg => seg.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return; settings[seg.dataset.key] = b.dataset.v; syncMenu();
+  }));
+  let menuSnapshot = null;
+  function openMenu() { menuSnapshot = JSON.stringify(settings); syncMenu(); el('menu').classList.add('show'); }
+  el('menuBtn').onclick = openMenu;
+  el('closeMenu').onclick = () => { if (menuSnapshot) settings = JSON.parse(menuSnapshot); el('menu').classList.remove('show'); };
+  el('startBtn').onclick = () => {
+    initAudio();
+    const changed = menuSnapshot !== JSON.stringify(settings);
+    el('menu').classList.remove('show');
+    if (changed) scores = { X: 0, O: 0, D: 0 };   // new matchup, fresh scoreboard
+    save(); newRound(true);
+  };
+
+  // ---------- rendering ----------
+  const X_SVG = (anim) => `<svg viewBox="0 0 100 100"><path class="mark x ${anim ? 'draw' : ''}" d="M22,22 L78,78"/><path class="mark x ${anim ? 'draw d2' : ''}" d="M78,22 L22,78"/></svg>`;
+  const O_SVG = (anim) => `<svg viewBox="0 0 100 100"><circle class="mark o ${anim ? 'draw' : ''}" cx="50" cy="50" r="30" transform="rotate(-90 50 50)"/></svg>`;
+
+  function nameOf(p) {
+    if (!vsCpu()) return 'Player ' + p;
+    return p === settings.side ? 'You (' + p + ')' : 'Computer (' + p + ')';
+  }
+
+  function render() {
+    let html = '';
+    for (let i = 0; i < 9; i++) {
+      const v = board[i], anim = i === lastPlaced;
+      const dim = result && result.line && !result.line.includes(i);
+      html += `<div class="cell${dim ? ' dim' : ''}" data-i="${i}" role="button" aria-label="Square ${i + 1}${v ? ', ' + v : ''}">${v === 'X' ? X_SVG(anim) : v === 'O' ? O_SVG(anim) : ''}</div>`;
+    }
+    el('board').innerHTML = html;
+    lastPlaced = -1;   // only animate a mark the first time it appears
+
+    if (result && result.line && !el('winline').innerHTML) {
+      const c = i => [(i % 3) * 33.33 + 16.67, Math.floor(i / 3) * 33.33 + 16.67];
+      const [a, , b] = result.line, p = c(a), q = c(b);
+      const ext = (u, v) => [u[0] + (u[0] - v[0]) * 0.18, u[1] + (u[1] - v[1]) * 0.18];
+      const s = ext(p, q), e = ext(q, p);
+      el('winline').innerHTML = `<line x1="${s[0]}" y1="${s[1]}" x2="${e[0]}" y2="${e[1]}"/>`;
+    }
+
+    el('nameX').textContent = nameOf('X'); el('nameO').textContent = nameOf('O');
+    el('numX').textContent = scores.X; el('numO').textContent = scores.O; el('numD').textContent = scores.D;
+    el('scoreX').classList.toggle('turn', !result && turn === 'X');
+    el('scoreO').classList.toggle('turn', !result && turn === 'O');
+
+    let s;
+    if (result) {
+      if (result.who === 'D') s = "It's a draw!";
+      else if (vsCpu()) s = result.who === settings.side ? `You win! 🎉` : 'Computer wins';
+      else s = `<span class="${result.who.toLowerCase()}">${result.who}</span> wins! 🎉`;
+      s += ' · tap New round';
+    } else if (thinking) s = 'Computer is thinking…';
+    else if (vsCpu()) s = turn === settings.side ? `Your turn (<span class="${turn.toLowerCase()}">${turn}</span>)` : 'Computer’s turn';
+    else s = `<span class="${turn.toLowerCase()}">${turn}</span>’s turn`;
+    el('status').innerHTML = s;
+    el('undoBtn').disabled = !history.length || thinking;
+  }
+
+  // ---------- Android hooks ----------
+  window.gameBack = () => {
+    if (el('menu').classList.contains('show')) { el('closeMenu').click(); return true; }
+    return false;
+  };
+  window.gameShowPrivacyLink = () => el('privacyLink').classList.remove('hide');
+  el('privacyLink').addEventListener('click', e => {
+    e.preventDefault();
+    if (window.Android && window.Android.showPrivacyOptions) window.Android.showPrivacyOptions();
+  });
+  try { if (window.Android && window.Android.privacyOptionsRequired()) window.gameShowPrivacyLink(); } catch (e) {}
+
+  // ---------- boot ----------
+  let firstRun = true;
+  try { firstRun = !localStorage.getItem('ttt-settings'); } catch (e) {}
+  newRound(true);
+  if (firstRun) openMenu();
+})();
+</script>
+<!-- Remove Ads: one-time purchase through Google Play. Only shows inside the Android app. -->
+<style>
+.noads-btn { font-weight: 800; font-size: 13px; white-space: nowrap; }
+#noadsBox { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); font-family: inherit; }
+#noadsBox.show { display: flex; }
+#noadsBox .nacard { width: min(88vw, 340px); background: #1d2030; color: #eef; border: 1px solid rgba(255,255,255,0.15); border-radius: 18px; padding: 20px 18px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+#noadsBox h2 { margin: 0 0 8px; font-size: 21px; }
+#noadsBox p { margin: 0 0 16px; font-size: 14.5px; line-height: 1.4; opacity: 0.85; }
+#noadsBox .nabuy { display: block; width: 100%; border: 0; border-radius: 12px; padding: 13px; font-size: 16px; font-weight: 800; color: #10210d; background: linear-gradient(180deg, #8ee26a, #4caf50); cursor: pointer; }
+#noadsBox .nalink { display: block; width: 100%; margin-top: 10px; border: 0; background: none; color: #aab; font-size: 14px; padding: 6px; cursor: pointer; }
+#noadsToast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 10000; background: rgba(20,22,30,0.95); color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 14px; opacity: 0; transition: opacity .25s; pointer-events: none; max-width: 88vw; text-align: center; }
+#noadsToast.show { opacity: 1; }
+</style>
+<div id="noadsBox" role="dialog" aria-modal="true">
+  <div class="nacard">
+    <h2>Remove ads</h2>
+    <p>Pay once and the banner at the bottom is gone for good. Nothing else changes, and your progress is kept.</p>
+    <button class="nabuy" id="noadsBuy">Remove ads</button>
+    <button class="nalink" id="noadsRestore">Already bought it? Restore purchase</button>
+    <button class="nalink" id="noadsClose">Not now</button>
+  </div>
+</div>
+<div id="noadsToast"></div>
+<script>
+(function () {
+  const store = window.AndroidStore;
+  if (!store) return;   // web preview: no store, no button
+  const box = document.getElementById('noadsBox');
+  const buyBtn = document.getElementById('noadsBuy');
+  let price = '';
+  try { price = store.price() || ''; } catch (e) {}
+  const isRemoved = () => { try { return !!store.isRemoved(); } catch (e) { return false; } };
+  const setPrice = () => { buyBtn.textContent = 'Remove ads · ' + (price || '$2.99'); };
+
+  // "No ads" button in the header, next to the sound button (far away from the banner)
+  const mute = document.getElementById('muteBtn');
+  const btn = document.createElement('button');
+  btn.className = (mute ? mute.className + ' ' : '') + 'noads-btn';
+  btn.textContent = 'No ads';
+  btn.setAttribute('aria-label', 'Remove ads');
+  if (mute) mute.insertAdjacentElement('beforebegin', btn);
+  const refresh = () => { btn.style.display = isRemoved() ? 'none' : ''; };
+  refresh();
+
+  let toastT = 0;
+  const toast = (t) => { const el = document.getElementById('noadsToast'); el.textContent = t; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2800); };
+  const open = () => {
+    // pause action games first
+    try { if (window.gamePause) window.gamePause(); else if (window.blockDropBack) window.blockDropBack(); } catch (e) {}
+    setPrice(); box.classList.add('show');
+  };
+  const close = () => box.classList.remove('show');
+  btn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); open(); });
+  buyBtn.addEventListener('click', () => store.buy());
+  document.getElementById('noadsRestore').addEventListener('click', () => { store.restore(); toast('Checking your purchases…'); });
+  document.getElementById('noadsClose').addEventListener('click', close);
+  box.addEventListener('click', (e) => { if (e.target === box) close(); });
+
+  window.onRemoveAdsPrice = (p) => { price = p; setPrice(); };
+  window.onAdsRemoved = () => { close(); refresh(); toast('Ads removed. Thank you!'); };
+  window.onPurchaseError = (m) => toast(m || 'The purchase didn\'t go through.');
+
+  // The phone's back button closes this box first
+  for (const name of ['gameBack', 'blockDropBack']) {
+    const orig = window[name];
+    if (typeof orig !== 'function') continue;
+    window[name] = function () { if (box.classList.contains('show')) { close(); return true; } return orig.apply(this, arguments); };
+  }
+})();
+</script>
+</body>
+</html>

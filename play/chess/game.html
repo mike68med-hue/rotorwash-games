@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Simple Chess</title>
+<style>
+  :root {
+    --bg: #0f1220; --panel: #181c30; --line: #262b47; --text: #e9ecf8; --muted: #8a91b4; --accent: #ffcf4a;
+    --light: #ecdcbf; --dark: #a57a55;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overscroll-behavior: none;
+    user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+  .app { max-width: 560px; margin: 0 auto; min-height: 100%; display: flex; flex-direction: column; padding: 10px 12px 14px; gap: 10px; }
+  header { display: flex; align-items: center; justify-content: space-between; }
+  h1 { font-size: 18px; margin: 0; letter-spacing: .5px; }
+  h1 span { color: var(--accent); }
+  .btn { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 10px;
+    padding: 8px 14px; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .player { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 30px; }
+  .player .name { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); }
+  .dot.w { background: #f7f2e8; } .dot.b { background: #2a2433; border-color: #555; }
+  .player.active .name { color: var(--accent); }
+  .caps { display: flex; flex-wrap: wrap; align-items: center; gap: 0; min-height: 22px; }
+  .caps svg { width: 20px; height: 20px; margin-right: -5px; }
+  .caps .adv { margin-left: 8px; font-size: 13px; color: var(--muted); font-weight: 700; }
+  .boardwrap { position: relative; width: 100%; aspect-ratio: 1; }
+  .board { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
+    border-radius: 8px; overflow: hidden; box-shadow: 0 6px 24px rgba(0,0,0,.45); }
+  .sq { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .sq.l { background: var(--light); } .sq.d { background: var(--dark); }
+  .sq.last::before { content: ""; position: absolute; inset: 0; background: rgba(255, 207, 74, .38); }
+  .sq.sel::before { content: ""; position: absolute; inset: 0; background: rgba(255, 207, 74, .65); }
+  .sq.check::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle, rgba(255,40,40,.9) 0%, rgba(255,40,40,.45) 45%, rgba(255,40,40,0) 75%); }
+  .sq svg { position: relative; width: 88%; height: 88%; pointer-events: none; }
+  .sq.moving { z-index: 5; }
+  .sq.moving svg { filter: drop-shadow(0 6px 6px rgba(0,0,0,.35)); }
+  .sq.from::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 0 0 3px rgba(255, 207, 74, .9); pointer-events: none; }
+  .sq .hint { position: absolute; width: 30%; height: 30%; border-radius: 50%; background: rgba(20, 20, 30, .32); pointer-events: none; }
+  .sq .ring { position: absolute; inset: 4%; border-radius: 50%; border: 4px solid rgba(20, 20, 30, .32); pointer-events: none; }
+  .coord { position: absolute; font-size: 10px; font-weight: 700; pointer-events: none; opacity: .75; }
+  .coord.f { right: 3px; bottom: 1px; } .coord.r { left: 3px; top: 1px; }
+  .sq.l .coord { color: var(--dark); } .sq.d .coord { color: var(--light); }
+  .status { text-align: center; font-weight: 600; min-height: 22px; color: var(--muted); }
+  .status.hot { color: var(--accent); }
+  .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .controls .btn { height: 50px; }
+  .moves { font-size: 13px; color: var(--muted); line-height: 1.7; max-height: 64px; overflow-y: auto; padding: 0 2px; }
+  .moves b { color: var(--text); font-weight: 600; margin-right: 2px; }
+  /* overlays */
+  .overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(8, 10, 20, .78); z-index: 10; padding: 20px; }
+  .overlay.show { display: flex; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 22px; width: min(420px, 100%); text-align: center; }
+  .card h2 { margin: 0 0 6px; font-size: 24px; }
+  .card p { margin: 0 0 16px; color: var(--muted); }
+  .opt { margin: 14px 0; text-align: left; }
+  .opt .label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 6px; }
+  .seg { display: flex; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 3px; gap: 3px; }
+  .seg button { flex: 1; background: none; border: 0; color: var(--text); padding: 10px 4px; border-radius: 9px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .seg button.on { background: var(--accent); color: #1a1400; }
+  .big { background: var(--accent); color: #1a1400; border: 0; border-radius: 12px; padding: 13px 28px; font-size: 18px; font-weight: 800; cursor: pointer; width: 100%; margin-top: 8px; }
+  .link { background: none; border: 0; color: var(--muted); margin-top: 12px; font-size: 14px; cursor: pointer; text-decoration: underline; }
+  .promo { display: flex; gap: 10px; justify-content: center; }
+  .promo button { width: 70px; height: 70px; border-radius: 12px; background: var(--light); border: 0; cursor: pointer; }
+  .promo svg { width: 90%; height: 90%; }
+  .hide { display: none !important; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Simple <span>Chess</span></h1>
+    <div class="row">
+      <button class="btn" id="muteBtn" aria-label="Sound on or off">🔊</button>
+      <button class="btn" id="menuBtn">New game</button>
+    </div>
+  </header>
+
+  <div class="player" id="topBar">
+    <div class="name"><span class="dot" id="topDot"></span><span id="topName">Computer</span></div>
+    <div class="caps" id="topCaps"></div>
+  </div>
+
+  <div class="boardwrap"><div class="board" id="board"></div></div>
+
+  <div class="player" id="botBar">
+    <div class="name"><span class="dot" id="botDot"></span><span id="botName">You</span></div>
+    <div class="caps" id="botCaps"></div>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <div class="controls">
+    <button class="btn" id="undoBtn">↶ Undo</button>
+    <button class="btn" id="hintBtn">💡 Hint</button>
+    <button class="btn" id="flipBtn">⇅ Flip</button>
+  </div>
+
+  <div class="moves" id="moves"></div>
+  <div id="privacyLink" class="hide" style="text-align:center"><a href="#" style="color:var(--muted);font-size:13px">Privacy settings</a></div>
+</div>
+
+<!-- New game menu -->
+<div class="overlay" id="menu">
+  <div class="card">
+    <h2>Simple Chess</h2>
+    <div class="opt">
+      <div class="label">Opponent</div>
+      <div class="seg" data-key="mode"><button data-v="cpu">Computer</button><button data-v="2p">2 Players</button></div>
+    </div>
+    <div class="opt" id="levelOpt">
+      <div class="label">Difficulty</div>
+      <div class="seg" data-key="level"><button data-v="1">Easy</button><button data-v="2">Medium</button><button data-v="3">Hard</button></div>
+    </div>
+    <div class="opt" id="sideOpt">
+      <div class="label">Play as</div>
+      <div class="seg" data-key="side"><button data-v="w">White</button><button data-v="b">Black</button><button data-v="r">Random</button></div>
+    </div>
+    <button class="big" id="startBtn">Start game</button>
+    <button class="link" id="closeMenu">Back to current game</button>
+  </div>
+</div>
+
+<!-- Game over -->
+<div class="overlay" id="endBox">
+  <div class="card">
+    <h2 id="endTitle">Checkmate</h2>
+    <p id="endText"></p>
+    <button class="big" id="againBtn">Play again</button>
+    <button class="link" id="reviewBtn">Look at the board</button>
+  </div>
+</div>
+
+<!-- Promotion -->
+<div class="overlay" id="promoBox">
+  <div class="card">
+    <h2>Promote pawn</h2>
+    <p>Choose a piece</p>
+    <div class="promo" id="promoBtns"></div>
+  </div>
+</div>
+
+<script>
+// ===== Simple Chess engine: rules + computer opponent =====
+// Board: array of 64, index = row*8 + col, row 0 = rank 8 (black's back rank).
+// Pieces: 'PNBRQK' white, 'pnbrqk' black, '' empty.
+var Engine = (function () {
+  var START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
+
+  function isWhite(p) { return p && p === p.toUpperCase(); }
+  function colorOf(p) { return p ? (isWhite(p) ? 'w' : 'b') : null; }
+
+  function fromFen(fen) {
+    var parts = fen.split(' ');
+    var b = [];
+    parts[0].split('/').forEach(function (row) {
+      for (var i = 0; i < row.length; i++) {
+        var ch = row[i];
+        if (ch >= '1' && ch <= '8') { for (var k = 0; k < +ch; k++) b.push(''); }
+        else b.push(ch);
+      }
+    });
+    var cs = parts[2] || 'KQkq';
+    var ep = parts[3] && parts[3] !== '-' ? sqIndex(parts[3]) : -1;
+    return {
+      b: b, turn: parts[1] || 'w',
+      castle: { K: cs.indexOf('K') >= 0, Q: cs.indexOf('Q') >= 0, k: cs.indexOf('k') >= 0, q: cs.indexOf('q') >= 0 },
+      ep: ep, half: +(parts[4] || 0), full: +(parts[5] || 1)
+    };
+  }
+  function newGame() { return fromFen(START + ' w KQkq - 0 1'); }
+
+  function sqIndex(name) { return (8 - +name[1]) * 8 + (name.charCodeAt(0) - 97); }
+  function sqName(i) { return String.fromCharCode(97 + (i & 7)) + (8 - (i >> 3)); }
+
+  var KN = [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]];
+  var KG = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
+  var ORTH = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+  var DIAG = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+
+  // Is square sq attacked by side `by` ('w' or 'b')?
+  function attacked(b, sq, by) {
+    var r = sq >> 3, c = sq & 7, i, rr, cc, p;
+    // pawns
+    var pr = by === 'w' ? r + 1 : r - 1, pawn = by === 'w' ? 'P' : 'p';
+    if (pr >= 0 && pr < 8) {
+      if (c > 0 && b[pr * 8 + c - 1] === pawn) return true;
+      if (c < 7 && b[pr * 8 + c + 1] === pawn) return true;
+    }
+    var n = by === 'w' ? 'N' : 'n', k = by === 'w' ? 'K' : 'k';
+    for (i = 0; i < 8; i++) {
+      rr = r + KN[i][0]; cc = c + KN[i][1];
+      if (rr >= 0 && rr < 8 && cc >= 0 && cc < 8 && b[rr * 8 + cc] === n) return true;
+      rr = r + KG[i][0]; cc = c + KG[i][1];
+      if (rr >= 0 && rr < 8 && cc >= 0 && cc < 8 && b[rr * 8 + cc] === k) return true;
+    }
+    var rq = by === 'w' ? 'RQ' : 'rq', bq = by === 'w' ? 'BQ' : 'bq';
+    for (i = 0; i < 4; i++) {
+      rr = r + ORTH[i][0]; cc = c + ORTH[i][1];
+      while (rr >= 0 && rr < 8 && cc >= 0 && cc < 8) {
+        p = b[rr * 8 + cc];
+        if (p) { if (rq.indexOf(p) >= 0) return true; break; }
+        rr += ORTH[i][0]; cc += ORTH[i][1];
+      }
+      rr = r + DIAG[i][0]; cc = c + DIAG[i][1];
+      while (rr >= 0 && rr < 8 && cc >= 0 && cc < 8) {
+        p = b[rr * 8 + cc];
+        if (p) { if (bq.indexOf(p) >= 0) return true; break; }
+        rr += DIAG[i][0]; cc += DIAG[i][1];
+      }
+    }
+    return false;
+  }
+
+  function kingSq(b, color) {
+    var k = color === 'w' ? 'K' : 'k';
+    for (var i = 0; i < 64; i++) if (b[i] === k) return i;
+    return -1;
+  }
+  function inCheck(st, color) {
+    color = color || st.turn;
+    return attacked(st.b, kingSq(st.b, color), color === 'w' ? 'b' : 'w');
+  }
+
+  function pseudoMoves(st, capturesOnly) {
+    var b = st.b, me = st.turn, them = me === 'w' ? 'b' : 'w', out = [];
+    function add(from, to, flag) {
+      var cap = b[to];
+      if (capturesOnly && !cap && flag !== 'ep') return;
+      out.push({ from: from, to: to, flag: flag || '', cap: flag === 'ep' ? (me === 'w' ? 'p' : 'P') : cap });
+    }
+    function addPawn(from, to) {
+      var r = to >> 3;
+      if (r === 0 || r === 7) {
+        ['q', 'r', 'b', 'n'].forEach(function (pr) {
+          var cap = b[to];
+          if (capturesOnly && !cap && pr !== 'q') return;
+          out.push({ from: from, to: to, flag: '', promo: pr, cap: cap });
+        });
+      } else add(from, to);
+    }
+    for (var sq = 0; sq < 64; sq++) {
+      var p = b[sq];
+      if (!p || colorOf(p) !== me) continue;
+      var t = p.toLowerCase(), r = sq >> 3, c = sq & 7, i, rr, cc, to, q;
+      if (t === 'p') {
+        var dir = me === 'w' ? -1 : 1, startRow = me === 'w' ? 6 : 1;
+        rr = r + dir;
+        if (rr >= 0 && rr < 8) {
+          to = rr * 8 + c;
+          if (!b[to]) {
+            if (!capturesOnly || rr === 0 || rr === 7) addPawn(sq, to);
+            if (r === startRow && !b[to + dir * 8] && !capturesOnly) add(sq, to + dir * 8, 'double');
+          }
+          for (var dc = -1; dc <= 1; dc += 2) {
+            cc = c + dc;
+            if (cc < 0 || cc > 7) continue;
+            to = rr * 8 + cc;
+            if (b[to] && colorOf(b[to]) === them) addPawn(sq, to);
+            else if (to === st.ep) add(sq, to, 'ep');
+          }
+        }
+      } else if (t === 'n' || t === 'k') {
+        var offs = t === 'n' ? KN : KG;
+        for (i = 0; i < 8; i++) {
+          rr = r + offs[i][0]; cc = c + offs[i][1];
+          if (rr < 0 || rr > 7 || cc < 0 || cc > 7) continue;
+          to = rr * 8 + cc;
+          if (!b[to] || colorOf(b[to]) === them) add(sq, to);
+        }
+        if (t === 'k' && !capturesOnly) {
+          if (me === 'w' && sq === 60) {
+            if (st.castle.K && b[63] === 'R' && !b[61] && !b[62] && !attacked(b, 60, 'b') && !attacked(b, 61, 'b') && !attacked(b, 62, 'b')) add(60, 62, 'castleK');
+            if (st.castle.Q && b[56] === 'R' && !b[59] && !b[58] && !b[57] && !attacked(b, 60, 'b') && !attacked(b, 59, 'b') && !attacked(b, 58, 'b')) add(60, 58, 'castleQ');
+          } else if (me === 'b' && sq === 4) {
+            if (st.castle.k && b[7] === 'r' && !b[5] && !b[6] && !attacked(b, 4, 'w') && !attacked(b, 5, 'w') && !attacked(b, 6, 'w')) add(4, 6, 'castleK');
+            if (st.castle.q && b[0] === 'r' && !b[3] && !b[2] && !b[1] && !attacked(b, 4, 'w') && !attacked(b, 3, 'w') && !attacked(b, 2, 'w')) add(4, 2, 'castleQ');
+          }
+        }
+      } else {
+        var dirs = t === 'r' ? ORTH : t === 'b' ? DIAG : ORTH.concat(DIAG);
+        for (i = 0; i < dirs.length; i++) {
+          rr = r + dirs[i][0]; cc = c + dirs[i][1];
+          while (rr >= 0 && rr < 8 && cc >= 0 && cc < 8) {
+            to = rr * 8 + cc; q = b[to];
+            if (!q) add(sq, to);
+            else { if (colorOf(q) === them) add(sq, to); break; }
+            rr += dirs[i][0]; cc += dirs[i][1];
+          }
+        }
+      }
+    }
+    return out;
+  }
+
+  function makeMove(st, m) {
+    var b = st.b.slice(), p = b[m.from], white = st.turn === 'w';
+    b[m.to] = m.promo ? (white ? m.promo.toUpperCase() : m.promo) : p;
+    b[m.from] = '';
+    if (m.flag === 'ep') b[m.to + (white ? 8 : -8)] = '';
+    if (m.flag === 'castleK') { b[m.to - 1] = b[m.to + 1]; b[m.to + 1] = ''; }
+    if (m.flag === 'castleQ') { b[m.to + 1] = b[m.to - 2]; b[m.to - 2] = ''; }
+    var cs = { K: st.castle.K, Q: st.castle.Q, k: st.castle.k, q: st.castle.q };
+    if (p === 'K') { cs.K = cs.Q = false; }
+    if (p === 'k') { cs.k = cs.q = false; }
+    if (m.from === 63 || m.to === 63) cs.K = false;
+    if (m.from === 56 || m.to === 56) cs.Q = false;
+    if (m.from === 7 || m.to === 7) cs.k = false;
+    if (m.from === 0 || m.to === 0) cs.q = false;
+    return {
+      b: b, turn: white ? 'b' : 'w', castle: cs,
+      ep: m.flag === 'double' ? (m.from + m.to) / 2 : -1,
+      half: (p.toLowerCase() === 'p' || m.cap) ? 0 : st.half + 1,
+      full: st.full + (white ? 0 : 1)
+    };
+  }
+
+  function legalMoves(st, capturesOnly) {
+    var me = st.turn, them = me === 'w' ? 'b' : 'w';
+    return pseudoMoves(st, capturesOnly).filter(function (m) {
+      var ns = makeMove(st, m);
+      return !attacked(ns.b, kingSq(ns.b, me), them);
+    });
+  }
+
+  function posKey(st) {
+    var c = st.castle;
+    return st.b.join(',') + st.turn + (c.K ? 'K' : '') + (c.Q ? 'Q' : '') + (c.k ? 'k' : '') + (c.q ? 'q' : '') + st.ep;
+  }
+
+  function insufficient(b) {
+    var minors = 0;
+    for (var i = 0; i < 64; i++) {
+      var p = b[i];
+      if (!p || p === 'K' || p === 'k') continue;
+      var t = p.toLowerCase();
+      if (t === 'b' || t === 'n') { minors++; if (minors > 1) return false; }
+      else return false;
+    }
+    return true;
+  }
+
+  // Game status. history = array of position keys so far (for repetition).
+  function status(st, history) {
+    var moves = legalMoves(st);
+    if (moves.length === 0) return inCheck(st) ? { over: true, result: 'mate', winner: st.turn === 'w' ? 'b' : 'w' } : { over: true, result: 'stalemate' };
+    if (insufficient(st.b)) return { over: true, result: 'material' };
+    if (st.half >= 100) return { over: true, result: 'fifty' };
+    if (history) {
+      var key = posKey(st), n = 0;
+      for (var i = 0; i < history.length; i++) if (history[i] === key) n++;
+      if (n >= 3) return { over: true, result: 'repetition' };
+    }
+    return { over: false, check: inCheck(st) };
+  }
+
+  // Standard algebraic notation for a move (before it is made).
+  function san(st, m) {
+    var p = st.b[m.from], t = p.toLowerCase(), s;
+    if (m.flag === 'castleK') s = 'O-O';
+    else if (m.flag === 'castleQ') s = 'O-O-O';
+    else {
+      s = '';
+      if (t !== 'p') {
+        s = t.toUpperCase();
+        var others = legalMoves(st).filter(function (o) { return o.to === m.to && o.from !== m.from && st.b[o.from] === p; });
+        if (others.length) {
+          var sameFile = others.some(function (o) { return (o.from & 7) === (m.from & 7); });
+          var sameRank = others.some(function (o) { return (o.from >> 3) === (m.from >> 3); });
+          if (!sameFile) s += sqName(m.from)[0];
+          else if (!sameRank) s += sqName(m.from)[1];
+          else s += sqName(m.from);
+        }
+      }
+      if (m.cap) s += (t === 'p' ? sqName(m.from)[0] : '') + 'x';
+      s += sqName(m.to);
+      if (m.promo) s += '=' + m.promo.toUpperCase();
+    }
+    var ns = makeMove(st, m);
+    if (inCheck(ns)) s += legalMoves(ns).length ? '+' : '#';
+    return s;
+  }
+
+  // ---------- computer opponent ----------
+  var VAL = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 0 };
+  // Piece-square tables from white's point of view (row 0 = rank 8).
+  var PST = {
+    p: [0, 0, 0, 0, 0, 0, 0, 0, 50, 50, 50, 50, 50, 50, 50, 50, 10, 10, 20, 30, 30, 20, 10, 10, 5, 5, 10, 25, 25, 10, 5, 5, 0, 0, 0, 20, 20, 0, 0, 0, 5, -5, -10, 0, 0, -10, -5, 5, 5, 10, 10, -20, -20, 10, 10, 5, 0, 0, 0, 0, 0, 0, 0, 0],
+    n: [-50, -40, -30, -30, -30, -30, -40, -50, -40, -20, 0, 0, 0, 0, -20, -40, -30, 0, 10, 15, 15, 10, 0, -30, -30, 5, 15, 20, 20, 15, 5, -30, -30, 0, 15, 20, 20, 15, 0, -30, -30, 5, 10, 15, 15, 10, 5, -30, -40, -20, 0, 5, 5, 0, -20, -40, -50, -40, -30, -30, -30, -30, -40, -50],
+    b: [-20, -10, -10, -10, -10, -10, -10, -20, -10, 0, 0, 0, 0, 0, 0, -10, -10, 0, 5, 10, 10, 5, 0, -10, -10, 5, 5, 10, 10, 5, 5, -10, -10, 0, 10, 10, 10, 10, 0, -10, -10, 10, 10, 10, 10, 10, 10, -10, -10, 5, 0, 0, 0, 0, 5, -10, -20, -10, -10, -10, -10, -10, -10, -20],
+    r: [0, 0, 0, 0, 0, 0, 0, 0, 5, 10, 10, 10, 10, 10, 10, 5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, 0, 0, 0, 5, 5, 0, 0, 0],
+    q: [-20, -10, -10, -5, -5, -10, -10, -20, -10, 0, 0, 0, 0, 0, 0, -10, -10, 0, 5, 5, 5, 5, 0, -10, -5, 0, 5, 5, 5, 5, 0, -5, 0, 0, 5, 5, 5, 5, 0, -5, -10, 5, 5, 5, 5, 5, 0, -10, -10, 0, 5, 0, 0, 0, 0, -10, -20, -10, -10, -5, -5, -10, -10, -20],
+    k: [-30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -20, -30, -30, -40, -40, -30, -30, -20, -10, -20, -20, -20, -20, -20, -20, -10, 20, 20, 0, 0, 0, 0, 20, 20, 20, 30, 10, 0, 0, 10, 30, 20],
+    kEnd: [-50, -40, -30, -20, -20, -30, -40, -50, -30, -20, -10, 0, 0, -10, -20, -30, -30, -10, 20, 30, 30, 20, -10, -30, -30, -10, 30, 40, 40, 30, -10, -30, -30, -10, 30, 40, 40, 30, -10, -30, -30, -10, 20, 30, 30, 20, -10, -30, -30, -30, 0, 0, 0, 0, -30, -30, -50, -30, -30, -30, -30, -30, -30, -50]
+  };
+
+  // Score from the side-to-move's point of view.
+  function evaluate(st) {
+    var b = st.b, score = 0, nonPawn = 0, i, p;
+    for (i = 0; i < 64; i++) { p = b[i]; if (p && 'nbrqNBRQ'.indexOf(p) >= 0) nonPawn += VAL[p.toLowerCase()]; }
+    var endgame = nonPawn <= 1300;
+    for (i = 0; i < 64; i++) {
+      p = b[i];
+      if (!p) continue;
+      var t = p.toLowerCase(), w = p !== t;
+      var idx = w ? i : (7 - (i >> 3)) * 8 + (i & 7);
+      var table = t === 'k' && endgame ? PST.kEnd : PST[t];
+      var v = VAL[t] + table[idx];
+      score += w ? v : -v;
+    }
+    return st.turn === 'w' ? score : -score;
+  }
+
+  var MATE = 100000;
+  var nodes = 0;
+
+  function order(moves) {
+    return moves.sort(function (a, b) {
+      return mv(b) - mv(a);
+    });
+    function mv(m) {
+      var s = 0;
+      if (m.cap) s += 10 * VAL[m.cap.toLowerCase()] + 1000;
+      if (m.promo) s += VAL[m.promo] + 900;
+      return s;
+    }
+  }
+
+  function quiesce(st, alpha, beta, qd) {
+    nodes++;
+    var stand = evaluate(st);
+    if (stand >= beta) return beta;
+    if (stand > alpha) alpha = stand;
+    if (qd <= 0) return alpha;
+    var moves = order(legalMoves(st, true));
+    for (var i = 0; i < moves.length; i++) {
+      var sc = -quiesce(makeMove(st, moves[i]), -beta, -alpha, qd - 1);
+      if (sc >= beta) return beta;
+      if (sc > alpha) alpha = sc;
+    }
+    return alpha;
+  }
+
+  function negamax(st, depth, alpha, beta, ply, useQ) {
+    nodes++;
+    var moves = legalMoves(st);
+    if (!moves.length) return inCheck(st) ? -MATE + ply : 0;
+    if (st.half >= 100 || insufficient(st.b)) return 0;
+    if (depth <= 0) return useQ ? quiesce(st, alpha, beta, 4) : evaluate(st);
+    order(moves);
+    for (var i = 0; i < moves.length; i++) {
+      var sc = -negamax(makeMove(st, moves[i]), depth - 1, -beta, -alpha, ply + 1, useQ);
+      if (sc >= beta) return beta;
+      if (sc > alpha) alpha = sc;
+    }
+    return alpha;
+  }
+
+  // How strong each level plays.
+  //   depth: how many moves ahead it looks   q: whether it checks capture sequences to the end
+  //   noise: random fuzz added to each move's score (bigger = more mistakes)
+  //   random: chance of just playing any legal move
+  var LEVELS = {
+    1: { depth: 1, q: false, noise: 260, random: 0.30 },   // Easy: beginner, often misses threats
+    2: { depth: 1, q: true, noise: 90, random: 0.08 },     // Medium: grabs free pieces, plays loosely
+    3: { depth: 2, q: true, noise: 25, random: 0 },        // Hard: solid casual player
+    4: { depth: 2, q: true, noise: 0, random: 0 }          // used for the Hint button
+  };
+
+  // level: 1 = Easy, 2 = Medium, 3 = Hard, 4 = hint. history: position keys (avoid repeating when ahead).
+  function bestMove(st, level, history) {
+    var moves = legalMoves(st);
+    if (!moves.length) return null;
+    var L = LEVELS[level] || LEVELS[2];
+    if (L.random && Math.random() < L.random) return moves[Math.floor(Math.random() * moves.length)];
+    var depth = L.depth, useQ = L.q, noise = L.noise;
+    nodes = 0;
+    order(moves);
+    var best = null, bestScore = -Infinity;
+    for (var i = 0; i < moves.length; i++) {
+      var ns = makeMove(st, moves[i]);
+      var sc = -negamax(ns, depth - 1, -MATE - 1, MATE + 1, 1, useQ);
+      if (history && history.indexOf(posKey(ns)) >= 0 && sc > 0) sc -= 50;   // don't throw away a win by repeating
+      sc += noise ? (Math.random() * 2 - 1) * noise : 0;
+      if (sc > bestScore) { bestScore = sc; best = moves[i]; }
+    }
+    return best;
+  }
+
+  function perft(st, depth) {
+    if (depth === 0) return 1;
+    var moves = legalMoves(st), n = 0;
+    if (depth === 1) return moves.length;
+    for (var i = 0; i < moves.length; i++) n += perft(makeMove(st, moves[i]), depth - 1);
+    return n;
+  }
+
+  return {
+    newGame: newGame, fromFen: fromFen, legalMoves: legalMoves, makeMove: makeMove,
+    inCheck: inCheck, status: status, posKey: posKey, san: san, bestMove: bestMove,
+    sqName: sqName, colorOf: colorOf, perft: perft, evaluate: evaluate,
+    nodes: function () { return nodes; }
+  };
+})();
+if (typeof module !== 'undefined') module.exports = Engine;
+
+</script>
+<script>
+(() => {
+  const E = Engine;
+  const el = id => document.getElementById(id);
+
+  // ---------- original piece artwork (45x45) ----------
+  const SHAPES = {
+    p: `<circle cx="22.5" cy="13" r="5.5"/><path d="M16,34 C16,27 18.5,22.5 22.5,20 C26.5,22.5 29,27 29,34 Z"/><rect x="12" y="34" width="21" height="5" rx="2"/>`,
+    r: `<path d="M14,34 L15.5,19 L13,19 L13,11 L17,11 L17,14 L20.5,14 L20.5,11 L24.5,11 L24.5,14 L28,14 L28,11 L32,11 L32,19 L29.5,19 L31,34 Z"/><rect x="11" y="34" width="23" height="5" rx="2"/>`,
+    n: `<path d="M14,34 C15,29 19,26 21,22 C19,23.5 16,24.5 13.5,23.5 L11,25 L9.5,21.5 C10,16 14,11 19,9 L20,5.5 L22.5,8.5 C28.5,8.5 32,13 32,20 C32,26 30,30 31,34 Z"/><rect x="12" y="34" width="21" height="5" rx="2"/>`,
+    b: `<circle cx="22.5" cy="7.5" r="2.6"/><path d="M22.5,10.5 C16.5,14 15.5,21 18,26.5 L27,26.5 C29.5,21 28.5,14 22.5,10.5 Z"/><path d="M17,27 L28,27 L29.5,34 L15.5,34 Z"/><path d="M11,39 C13,35.5 18,34 22.5,34 C27,34 32,35.5 34,39 Z"/>`,
+    q: `<circle cx="9" cy="13" r="2.4"/><circle cx="15.5" cy="9.5" r="2.4"/><circle cx="22.5" cy="8" r="2.4"/><circle cx="29.5" cy="9.5" r="2.4"/><circle cx="36" cy="13" r="2.4"/><path d="M12.5,32 L9,15 L16,24.5 L16,11.5 L22.5,23 L29,11.5 L29,24.5 L36,15 L32.5,32 Z"/><rect x="11" y="32" width="23" height="3"/><rect x="10" y="35" width="25" height="4" rx="1.5"/>`,
+    k: `<rect x="21.4" y="3.5" width="2.2" height="9"/><rect x="18.5" y="6" width="8" height="2.2"/><path d="M13,32 C9.5,25 10.5,18.5 16,17.5 C19.5,17 21.5,19.5 22.5,21.5 C23.5,19.5 25.5,17 29,17.5 C34.5,18.5 35.5,25 32,32 Z"/><rect x="11.5" y="32" width="22" height="3"/><rect x="10" y="35" width="25" height="4" rx="1.5"/>`
+  };
+  const DETAIL = {   // small accent lines in the opposite colour
+    n: `<circle cx="22" cy="13.5" r="1.4"/>`,
+    b: `<path d="M24.5,14.5 L20.5,20.5" stroke-width="1.6" fill="none"/>`
+  };
+  function pieceSVG(p) {
+    const t = p.toLowerCase(), white = p !== t;
+    const fill = white ? '#f7f2e8' : '#2b2433', stroke = white ? '#2a1d14' : '#0b0810', acc = white ? '#2a1d14' : '#e9dcc8';
+    return `<svg viewBox="0 0 45 45" xmlns="http://www.w3.org/2000/svg"><g fill="${fill}" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round">${SHAPES[t]}</g>` +
+      (DETAIL[t] ? `<g fill="${acc}" stroke="${acc}">${DETAIL[t]}</g>` : '') + `</svg>`;
+  }
+
+  // ---------- sound ----------
+  let audioCtx = null, muted = false;
+  try { muted = localStorage.getItem('chess-muted') === '1'; } catch (e) {}
+  function initAudio() {
+    if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  function tone(freq, dur, type, vol, slideTo, delay) {
+    if (muted || !audioCtx) return;
+    const t = audioCtx.currentTime + (delay || 0), o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t + dur + 0.02);
+  }
+  const sfx = {
+    move: () => tone(520, 0.06, 'triangle', 0.09, 380),
+    capture: () => { tone(200, 0.1, 'square', 0.06, 110); tone(700, 0.05, 'triangle', 0.05, null, 0.02); },
+    check: () => [880, 1175].forEach((f, i) => tone(f, 0.12, 'triangle', 0.07, null, i * 0.08)),
+    win: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.18, 'triangle', 0.08, null, i * 0.11)),
+    lose: () => [392, 330, 262].forEach((f, i) => tone(f, 0.25, 'triangle', 0.08, null, i * 0.17)),
+    draw: () => [523, 523].forEach((f, i) => tone(f, 0.15, 'triangle', 0.07, null, i * 0.15))
+  };
+  function updateMute() { el('muteBtn').textContent = muted ? '🔇' : '🔊'; }
+  updateMute();
+  el('muteBtn').onclick = () => { muted = !muted; updateMute(); initAudio(); try { localStorage.setItem('chess-muted', muted ? '1' : '0'); } catch (e) {} };
+  document.addEventListener('pointerdown', initAudio, { passive: true });
+
+  // ---------- game state ----------
+  let settings = { mode: 'cpu', level: '2', side: 'w' };
+  let game = null;            // { mode, level, human: 'w'|'b'|null, flip, states: [...], moves: [{m, san}], keys: [...] }
+  let selected = -1, legalFromSel = [], hintMove = null, thinking = false, reviewing = false, pendingPromo = null;
+  let anim = null;   // { slides: [{from, to}], ms } – consumed by the next render()
+
+  function cur() { return game.states[game.states.length - 1]; }
+
+  function startGame(s) {
+    const human = s.mode === 'cpu' ? (s.side === 'r' ? (Math.random() < 0.5 ? 'w' : 'b') : s.side) : null;
+    const st = E.newGame();
+    game = { mode: s.mode, level: +s.level, human, flip: human === 'b', states: [st], moves: [], keys: [E.posKey(st)], over: null };
+    selected = -1; legalFromSel = []; hintMove = null; reviewing = false;
+    save(); render(); maybeComputer();
+  }
+
+  // ---------- save / resume ----------
+  function save() {
+    try {
+      localStorage.setItem('chess-game', JSON.stringify({ mode: game.mode, level: game.level, human: game.human, flip: game.flip,
+        moves: game.moves.map(x => ({ from: x.m.from, to: x.m.to, promo: x.m.promo || '' })) }));
+      localStorage.setItem('chess-settings', JSON.stringify(settings));
+    } catch (e) {}
+  }
+  function load() {
+    try {
+      const s = JSON.parse(localStorage.getItem('chess-settings') || 'null'); if (s) settings = s;
+      const g = JSON.parse(localStorage.getItem('chess-game') || 'null');
+      if (!g) return false;
+      const st = E.newGame();
+      game = { mode: g.mode, level: g.level, human: g.human, flip: g.flip, states: [st], moves: [], keys: [E.posKey(st)], over: null };
+      for (const mv of g.moves) {
+        const m = E.legalMoves(cur()).find(x => x.from === mv.from && x.to === mv.to && (x.promo || '') === mv.promo);
+        if (!m) break;
+        applyMove(m, true);
+      }
+      return true;
+    } catch (e) { return false; }
+  }
+
+  // ---------- moves ----------
+  function applyMove(m, silent) {
+    const st = cur();
+    const san = E.san(st, m);
+    const ns = E.makeMove(st, m);
+    game.states.push(ns); game.moves.push({ m, san }); game.keys.push(E.posKey(ns));
+    selected = -1; legalFromSel = []; hintMove = null;
+    const stat = E.status(ns, game.keys);
+    if (!silent) {
+      if (stat.over) endSound(stat); else if (stat.check) sfx.check(); else if (m.cap) sfx.capture(); else sfx.move();
+    }
+    game.over = stat.over ? stat : null;
+    if (!silent) {
+      const ms = game.mode === 'cpu' && st.turn !== game.human ? 420 : 220;   // computer moves slide slower so you can follow them
+      const slides = [{ from: m.from, to: m.to }];
+      if (m.flag === 'castleK') slides.push({ from: m.to + 1, to: m.to - 1 });
+      if (m.flag === 'castleQ') slides.push({ from: m.to - 2, to: m.to + 1 });
+      anim = { slides, ms };
+    }
+    if (!silent) { save(); render(); if (stat.over) setTimeout(() => showEnd(stat), 600); else maybeComputer(); }
+  }
+  function endSound(stat) {
+    if (stat.result !== 'mate') sfx.draw();
+    else if (game.mode === '2p' || stat.winner === game.human) sfx.win(); else sfx.lose();
+  }
+
+  function isHumanTurn() {
+    if (!game || game.over) return false;
+    return game.mode === '2p' || cur().turn === game.human;
+  }
+
+  function maybeComputer() {
+    if (!game || game.over || game.mode !== 'cpu' || cur().turn === game.human) return;
+    thinking = true; render(false);   // update the status text only, so the player's move keeps animating
+    const started = Date.now();
+    setTimeout(() => {
+      const m = E.bestMove(cur(), game.level, game.keys);
+      const wait = Math.max(0, 450 - (Date.now() - started));   // short pause so the move doesn't feel instant
+      setTimeout(() => { thinking = false; if (m && game && !game.over) applyMove(m); else render(); }, wait);
+    }, 60);
+  }
+
+  // ---------- input ----------
+  function onSquare(sq) {
+    if (thinking || pendingPromo) return;
+    if (!isHumanTurn()) return;
+    const st = cur(), p = st.b[sq];
+    if (selected >= 0) {
+      const options = legalFromSel.filter(m => m.to === sq);
+      if (options.length) {
+        if (options.length > 1) { askPromotion(options); return; }
+        applyMove(options[0]); return;
+      }
+    }
+    if (p && E.colorOf(p) === st.turn) {
+      selected = selected === sq ? -1 : sq;
+      legalFromSel = selected >= 0 ? E.legalMoves(st).filter(m => m.from === sq) : [];
+    } else { selected = -1; legalFromSel = []; }
+    hintMove = null;
+    render();
+  }
+
+  function askPromotion(options) {
+    pendingPromo = options;
+    const white = cur().turn === 'w';
+    el('promoBtns').innerHTML = '';
+    ['q', 'r', 'b', 'n'].forEach(t => {
+      const b = document.createElement('button');
+      b.innerHTML = pieceSVG(white ? t.toUpperCase() : t);
+      b.onclick = () => { const m = options.find(o => o.promo === t); pendingPromo = null; el('promoBox').classList.remove('show'); applyMove(m); };
+      el('promoBtns').appendChild(b);
+    });
+    el('promoBox').classList.add('show');
+  }
+
+  el('undoBtn').onclick = () => {
+    if (!game || thinking || game.moves.length === 0) return;
+    let n = 1;
+    if (game.mode === 'cpu') {
+      // go back to the human's previous turn
+      n = cur().turn === game.human && !game.over ? 2 : 1;
+      if (game.over && cur().turn === game.human) n = 2;
+      if (game.moves.length < n) n = game.moves.length;
+    }
+    for (let i = 0; i < n; i++) { game.states.pop(); game.moves.pop(); game.keys.pop(); }
+    game.over = null; selected = -1; legalFromSel = []; hintMove = null; reviewing = false;
+    save(); render(); maybeComputer();
+  };
+
+  el('hintBtn').onclick = () => {
+    if (!isHumanTurn() || thinking) return;
+    thinking = true; render();
+    setTimeout(() => {
+      hintMove = E.bestMove(cur(), 4, game.keys);
+      thinking = false; selected = -1; legalFromSel = []; render();
+    }, 40);
+  };
+
+  el('flipBtn').onclick = () => { if (!game) return; game.flip = !game.flip; save(); render(); };
+
+  // ---------- menu ----------
+  function syncMenu() {
+    document.querySelectorAll('.seg').forEach(seg => {
+      const key = seg.dataset.key;
+      seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === String(settings[key])));
+    });
+    el('levelOpt').classList.toggle('hide', settings.mode !== 'cpu');
+    el('sideOpt').classList.toggle('hide', settings.mode !== 'cpu');
+    el('closeMenu').classList.toggle('hide', !game);
+  }
+  document.querySelectorAll('.seg').forEach(seg => {
+    seg.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      settings[seg.dataset.key] = b.dataset.v; syncMenu();
+    });
+  });
+  function openMenu() { syncMenu(); el('menu').classList.add('show'); }
+  function closeMenu() { el('menu').classList.remove('show'); }
+  el('menuBtn').onclick = openMenu;
+  el('closeMenu').onclick = closeMenu;
+  el('startBtn').onclick = () => { initAudio(); closeMenu(); startGame(settings); };
+
+  // ---------- game over ----------
+  function showEnd(stat) {
+    let title = 'Draw', text = '';
+    if (stat.result === 'mate') {
+      title = 'Checkmate!';
+      if (game.mode === '2p') text = (stat.winner === 'w' ? 'White' : 'Black') + ' wins.';
+      else text = stat.winner === game.human ? 'You win. Nicely played!' : 'The computer wins this one.';
+    } else {
+      text = { stalemate: 'Stalemate: no legal moves, but not in check.', material: 'Not enough pieces left to checkmate.',
+        fifty: '50 moves without a capture or pawn move.', repetition: 'The same position came up three times.' }[stat.result];
+    }
+    el('endTitle').textContent = title; el('endText').textContent = text;
+    el('endBox').classList.add('show');
+  }
+  el('againBtn').onclick = () => { el('endBox').classList.remove('show'); openMenu(); };
+  el('reviewBtn').onclick = () => { el('endBox').classList.remove('show'); reviewing = true; render(); };
+
+  // ---------- rendering ----------
+  function material(b) {
+    const v = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 }; let w = 0, bl = 0;
+    b.forEach(p => { if (!p) return; const t = p.toLowerCase(); if (p === t) bl += v[t]; else w += v[t]; });
+    return w - bl;
+  }
+  function capturedBy(color) {
+    // pieces of the other colour that `color` has captured, from the move list
+    const out = [];
+    game.moves.forEach((x, i) => {
+      const mover = game.states[i].turn;
+      if (mover === color && x.m.cap) out.push(x.m.cap);
+    });
+    const order = 'qrbnp';
+    return out.sort((a, b) => order.indexOf(a.toLowerCase()) - order.indexOf(b.toLowerCase()));
+  }
+  function renderCaps(target, color) {
+    const caps = capturedBy(color);
+    const adv = material(cur().b) * (color === 'w' ? 1 : -1);
+    target.innerHTML = caps.map(pieceSVG).join('') + (adv > 0 ? `<span class="adv">+${adv}</span>` : '');
+  }
+
+  function render(boardToo = true) {
+    if (!game) return;
+    const st = cur(), board = el('board');
+    if (boardToo) renderBoard(st, board);
+    renderInfo(st);
+  }
+
+  function renderBoard(st, board) {
+    const lastM = game.moves.length ? game.moves[game.moves.length - 1].m : null;
+    const checkSq = E.inCheck(st) ? st.b.indexOf(st.turn === 'w' ? 'K' : 'k') : -1;
+    const files = 'abcdefgh';
+    let html = '';
+    for (let vr = 0; vr < 8; vr++) {
+      for (let vc = 0; vc < 8; vc++) {
+        const r = game.flip ? 7 - vr : vr, c = game.flip ? 7 - vc : vc, sq = r * 8 + c;
+        const cls = ['sq', (r + c) % 2 === 0 ? 'l' : 'd'];
+        if (lastM && (sq === lastM.from || sq === lastM.to)) cls.push('last');
+        if (lastM && sq === lastM.from) cls.push('from');
+        if (hintMove && (sq === hintMove.from || sq === hintMove.to)) cls.push('last');
+        if (sq === selected) cls.push('sel');
+        if (sq === checkSq) cls.push('check');
+        let inner = st.b[sq] ? pieceSVG(st.b[sq]) : '';
+        if (legalFromSel.some(m => m.to === sq)) inner += st.b[sq] || legalFromSel.some(m => m.to === sq && m.flag === 'ep') ? '<span class="ring"></span>' : '<span class="hint"></span>';
+        if (vc === 0) inner += `<span class="coord r">${8 - r}</span>`;
+        if (vr === 7) inner += `<span class="coord f">${files[c]}</span>`;
+        html += `<div class="${cls.join(' ')}" data-sq="${sq}">${inner}</div>`;
+      }
+    }
+    board.innerHTML = html;
+    if (anim) { playAnim(anim); anim = null; }
+  }
+
+  function renderInfo(st) {
+    const lastM = game.moves.length ? game.moves[game.moves.length - 1].m : null;
+
+    // players
+    const bottomColor = game.flip ? 'b' : 'w', topColor = game.flip ? 'w' : 'b';
+    const label = c => game.mode === '2p' ? (c === 'w' ? 'White' : 'Black') : (c === game.human ? 'You' : 'Computer · ' + ['', 'Easy', 'Medium', 'Hard'][game.level]);
+    el('topName').textContent = label(topColor); el('botName').textContent = label(bottomColor);
+    el('topDot').className = 'dot ' + topColor; el('botDot').className = 'dot ' + bottomColor;
+    el('topBar').classList.toggle('active', !game.over && st.turn === topColor);
+    el('botBar').classList.toggle('active', !game.over && st.turn === bottomColor);
+    renderCaps(el('topCaps'), topColor); renderCaps(el('botCaps'), bottomColor);
+
+    // status
+    let s = '', hot = false;
+    if (game.over) {
+      const o = game.over;
+      s = o.result === 'mate' ? 'Checkmate · ' + (o.winner === 'w' ? 'White' : 'Black') + ' wins' : 'Draw';
+      hot = true;
+    } else if (thinking && !isHumanTurn()) s = 'Computer is thinking…';
+    else if (thinking) s = 'Finding a good move…';
+    else if (hintMove) { s = 'Hint: ' + E.san(st, hintMove); hot = true; }
+    else {
+      const who = game.mode === '2p' ? (st.turn === 'w' ? 'White' : 'Black') + ' to move' : (st.turn === game.human ? 'Your move' : 'Computer to move');
+      s = E.inCheck(st) ? 'Check! ' + who : who; hot = E.inCheck(st);
+    }
+    el('status').textContent = s; el('status').classList.toggle('hot', hot);
+
+    // move list
+    let ml = '';
+    game.moves.forEach((x, i) => { if (i % 2 === 0) ml += `<b>${i / 2 + 1}.</b>`; ml += x.san + ' '; });
+    el('moves').innerHTML = ml; el('moves').scrollTop = 99999;
+
+    el('undoBtn').disabled = game.moves.length === 0 || thinking;
+    el('hintBtn').disabled = !isHumanTurn() || thinking;
+  }
+
+  // Slide pieces from their old square to their new one.
+  function playAnim(a) {
+    const board = el('board'), size = board.clientWidth / 8;
+    const pos = sq => { const r = sq >> 3, c = sq & 7; return game.flip ? [7 - r, 7 - c] : [r, c]; };
+    a.slides.forEach(s => {
+      const cell = board.querySelector(`.sq[data-sq="${s.to}"]`);
+      const svg = cell && cell.querySelector('svg');
+      if (!svg) return;
+      const [fr, fc] = pos(s.from), [tr, tc] = pos(s.to);
+      const dx = (fc - tc) * size, dy = (fr - tr) * size;
+      cell.classList.add('moving');
+      svg.style.transition = 'none';
+      svg.style.transform = `translate(${dx}px, ${dy}px)`;
+      svg.getBoundingClientRect();   // apply the start position before animating
+      svg.style.transition = `transform ${a.ms}ms cubic-bezier(.2,.7,.2,1)`;
+      svg.style.transform = 'translate(0, 0)';
+      setTimeout(() => cell.classList.remove('moving'), a.ms + 30);
+    });
+  }
+
+  el('board').addEventListener('click', e => {
+    const d = e.target.closest('.sq'); if (d) onSquare(+d.dataset.sq);
+  });
+
+  // ---------- Android back button hook ----------
+  window.gameBack = () => {
+    for (const id of ['promoBox', 'endBox']) if (el(id).classList.contains('show')) { if (id === 'endBox') el(id).classList.remove('show'); return true; }
+    if (el('menu').classList.contains('show') && game) { closeMenu(); return true; }
+    return false;
+  };
+
+  // ---------- Android: privacy settings link (shown only where ad-privacy laws require it) ----------
+  window.gameShowPrivacyLink = () => el('privacyLink').classList.remove('hide');
+  el('privacyLink').addEventListener('click', e => {
+    e.preventDefault();
+    if (window.Android && window.Android.showPrivacyOptions) window.Android.showPrivacyOptions();
+  });
+  try { if (window.Android && window.Android.privacyOptionsRequired()) window.gameShowPrivacyLink(); } catch (e) {}
+
+  // ---------- boot ----------
+  if (load()) { render(); if (game.over) showEnd(game.over); else maybeComputer(); }
+  else { startGame(settings); openMenu(); }
+})();
+</script>
+<!-- Remove Ads: one-time purchase through Google Play. Only shows inside the Android app. -->
+<style>
+.noads-btn { font-weight: 800; font-size: 13px; white-space: nowrap; }
+#noadsBox { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); font-family: inherit; }
+#noadsBox.show { display: flex; }
+#noadsBox .nacard { width: min(88vw, 340px); background: #1d2030; color: #eef; border: 1px solid rgba(255,255,255,0.15); border-radius: 18px; padding: 20px 18px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+#noadsBox h2 { margin: 0 0 8px; font-size: 21px; }
+#noadsBox p { margin: 0 0 16px; font-size: 14.5px; line-height: 1.4; opacity: 0.85; }
+#noadsBox .nabuy { display: block; width: 100%; border: 0; border-radius: 12px; padding: 13px; font-size: 16px; font-weight: 800; color: #10210d; background: linear-gradient(180deg, #8ee26a, #4caf50); cursor: pointer; }
+#noadsBox .nalink { display: block; width: 100%; margin-top: 10px; border: 0; background: none; color: #aab; font-size: 14px; padding: 6px; cursor: pointer; }
+#noadsToast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 10000; background: rgba(20,22,30,0.95); color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 14px; opacity: 0; transition: opacity .25s; pointer-events: none; max-width: 88vw; text-align: center; }
+#noadsToast.show { opacity: 1; }
+</style>
+<div id="noadsBox" role="dialog" aria-modal="true">
+  <div class="nacard">
+    <h2>Remove ads</h2>
+    <p>Pay once and the banner at the bottom is gone for good. Nothing else changes, and your progress is kept.</p>
+    <button class="nabuy" id="noadsBuy">Remove ads</button>
+    <button class="nalink" id="noadsRestore">Already bought it? Restore purchase</button>
+    <button class="nalink" id="noadsClose">Not now</button>
+  </div>
+</div>
+<div id="noadsToast"></div>
+<script>
+(function () {
+  const store = window.AndroidStore;
+  if (!store) return;   // web preview: no store, no button
+  const box = document.getElementById('noadsBox');
+  const buyBtn = document.getElementById('noadsBuy');
+  let price = '';
+  try { price = store.price() || ''; } catch (e) {}
+  const isRemoved = () => { try { return !!store.isRemoved(); } catch (e) { return false; } };
+  const setPrice = () => { buyBtn.textContent = 'Remove ads · ' + (price || '$2.99'); };
+
+  // "No ads" button in the header, next to the sound button (far away from the banner)
+  const mute = document.getElementById('muteBtn');
+  const btn = document.createElement('button');
+  btn.className = (mute ? mute.className + ' ' : '') + 'noads-btn';
+  btn.textContent = 'No ads';
+  btn.setAttribute('aria-label', 'Remove ads');
+  if (mute) mute.insertAdjacentElement('beforebegin', btn);
+  const refresh = () => { btn.style.display = isRemoved() ? 'none' : ''; };
+  refresh();
+
+  let toastT = 0;
+  const toast = (t) => { const el = document.getElementById('noadsToast'); el.textContent = t; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2800); };
+  const open = () => {
+    // pause action games first
+    try { if (window.gamePause) window.gamePause(); else if (window.blockDropBack) window.blockDropBack(); } catch (e) {}
+    setPrice(); box.classList.add('show');
+  };
+  const close = () => box.classList.remove('show');
+  btn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); open(); });
+  buyBtn.addEventListener('click', () => store.buy());
+  document.getElementById('noadsRestore').addEventListener('click', () => { store.restore(); toast('Checking your purchases…'); });
+  document.getElementById('noadsClose').addEventListener('click', close);
+  box.addEventListener('click', (e) => { if (e.target === box) close(); });
+
+  window.onRemoveAdsPrice = (p) => { price = p; setPrice(); };
+  window.onAdsRemoved = () => { close(); refresh(); toast('Ads removed. Thank you!'); };
+  window.onPurchaseError = (m) => toast(m || 'The purchase didn\'t go through.');
+
+  // The phone's back button closes this box first
+  for (const name of ['gameBack', 'blockDropBack']) {
+    const orig = window[name];
+    if (typeof orig !== 'function') continue;
+    window[name] = function () { if (box.classList.contains('show')) { close(); return true; } return orig.apply(this, arguments); };
+  }
+})();
+</script>
+</body>
+</html>
